@@ -99,7 +99,7 @@
 (defn wipe-deps
   "Push updates to web-root"
   ([project] 
-     (push project (get-default-channel project)))
+     (wipe-deps project (get-default-channel project)))
   ([project channel]
      (wipe-deps project channel)
      (println "Done.")))
