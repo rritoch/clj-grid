@@ -86,7 +86,7 @@
   [project dep]
   (not (blacklist-jar? dep (get-blacklist-files project))))
 
-(defn wipe-deps
+(defn wipe-deps-impl
   [project channel]
   (let [base-dir (get-app-root project channel)
         dd (filter (partial deploy-dep? project) (get-deps project))]
@@ -101,6 +101,6 @@
   ([project] 
      (wipe-deps project (get-default-channel project)))
   ([project channel]
-     (wipe-deps project channel)
+     (wipe-deps-impl project channel)
      (println "Done.")))
 
