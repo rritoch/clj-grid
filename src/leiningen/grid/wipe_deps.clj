@@ -45,7 +45,8 @@
 
 (defn wipe
       [src dest]
-      (if (.exists dest)
+      (if (and (.exists dest)
+               (.isFile dest))
           (do 
               (println (str "Removing ... "
                             (.toString dest)))
