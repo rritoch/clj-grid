@@ -58,6 +58,7 @@
     (or (.endsWith (.toLowerCase (.getName file)) "-local.clj")
         (re-find #"^\.?#" (.getName file))
         (re-find #"~$" (.getName file))
+        (.startsWith bundle-path "META-INF/resources/META-INF/resources/")
         (some #(re-find % bundle-path)
            (get-in project [:grid :osgi :bundle-exclusions] [#"(^|/)\."]))))
 
@@ -219,8 +220,13 @@
            '())))
 
 (defn bundle-resources-paths [project]
-    (filter identity
-            (distinct (concat [(:resources-path project)] (:resource-paths project)))))
+  [project]
+    (let [source-paths (if (not (:omit-source project))
+                           (concat [(:resources-path project)] (:resource-paths project)))
+          meta-resource-paths (mapv #(str %1 "/META-INF/resources") (filter identity (distinct source-paths)))]
+         (filter identity
+                 (or (distinct (into source-paths meta-resource-paths))
+                     '()))))
 
 (defn write-bundle
   [project bundle-path]
