@@ -26,8 +26,10 @@
 
 (def default-grid-manifest
   {"Created-By" "Leiningen Grid Plugin"
+   "Bundle-Activator" "grid.activator"
    "Built-By" (System/getProperty "user.name")
-   "Build-Jdk" (System/getProperty "java.version")})
+   "Build-Jdk" (System/getProperty "java.version")
+   })
 
 (defn to-manfiest-str
   [value]
@@ -49,10 +51,12 @@
   (symbol (str activator-ns "/" sym)))
 
 (defn make-manifest [user-manifest]
-    (Manifest. (to-byte-stream (reduce (fn [prefix [k v]]
-                                          (str prefix "\n" k ": " v))
-                                       "Manifest-Version: 1.0"
-                                       (merge default-grid-manifest user-manifest)))))
+    (let [mf-data (merge default-grid-manifest user-manifest)
+          mf-str (reduce (fn [prefix [k v]]
+                                          (str prefix  k ": " v "\n"))
+                                       "Manifest-Version: 1.0\n"
+                                       mf-data)]
+        (Manifest. (to-byte-stream mf-str))))
 
 (defn skip-file? [project bundle-path file]
     (or (.endsWith (.toLowerCase (.getName file)) "-local.clj")
@@ -150,11 +154,15 @@
   (or (get-in project [:grid :osgi :bundle-name])
       (str (:name project) "-" (:version project) "-bundle")))
 
+(defn bundle-version
+  [project]
+    (first (string/split (:version project) #"-")))
+
 (defn gen-osgi-manifest
   [project]
   (merge {"Bundle-ManifestVersion" 2
           "Bundle-Name" (default-bundle-name project)
-          "Bundle-Version" (:version project)
+          "Bundle-Version" (bundle-version project)
           "Bundle-Symbolicname" (:name project)}
          (user-osgi-manifest project)))
 
@@ -231,7 +239,7 @@
 (defn write-bundle
   [project bundle-path]
   (with-open [bundle-stream (create-bundle project bundle-path)]
-             (dir-entry project bundle-stream "WEB-INF/classes/" (:compile-path project))
+             (dir-entry project bundle-stream "" (:compile-path project))
              (doseq [path (bundle-source-paths project)
                      :when path]
                     (dir-entry project bundle-stream "" path))
