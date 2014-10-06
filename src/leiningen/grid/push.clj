@@ -11,7 +11,9 @@
 (def default-deploy-channels [["devel" {:app-root "public_html"}]])
 
 ; BRICK! tomcat-api-8.0.8.jar
-(def default-blacklist-files ["org/apache/tomcat/InstanceManager.class"])
+(def default-blacklist-files ["org/apache/tomcat/InstanceManager.class"
+                              "javax/servlet/Servlet.class"
+                              "javax/el/Expression.class"])
 
 (defn make-local-path
       [& args]
