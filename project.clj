@@ -5,10 +5,10 @@
             :url "http://www.vnetpublishing.com"}
   
   :dependencies [[leinjacker "0.4.1"]]
-  :repositories [["releases" {:url "http://home.vnetpublishing.com/artifactory/libs-release-local"
-                              :creds :gpg}]
-                 ["snapshots" {:url "http://home.vnetpublishing.com/artifactory/libs-snapshot-local"
-                               :creds :gpg}]]  
+  ;;:repositories [["releases" {:url "http://home.vnetpublishing.com/artifactory/libs-release-local"
+  ;;                            :creds :gpg}]
+  ;;               ["snapshots" {:url "http://home.vnetpublishing.com/artifactory/libs-snapshot-local"
+  ;;                             :creds :gpg}]]  
   ;:aot :all
   :eval-in-leiningen true)
 
