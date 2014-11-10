@@ -56,6 +56,8 @@
                                           (str prefix  k ": " v "\n"))
                                        "Manifest-Version: 1.0\n"
                                        mf-data)]
+        (println "Generated manifest ...")
+        (println mf-str)
         (Manifest. (to-byte-stream mf-str))))
 
 (defn skip-file? [project bundle-path file]
@@ -108,8 +110,8 @@
                       (if raw-value 
                           (assoc m
                                  (second (first mm))
-                                 (to-manifest-value raw-value)
-                          m))))))))
+                                 (to-manifest-value raw-value))
+                          m)))))))
 
 
 
@@ -183,30 +185,45 @@
 
 (defn generate-activator 
   [project activator-ns]
-  `(do (def ~(qsym activator-ns "grid-mods") (atom ~(or (mapv #(conj (list %) 'quote) (get-in project [:grid :modules]))
-                                                        [])))
-     (defn ~(qsym activator-ns "-start")
-       [context#]
-         (loop [m# (deref ~(qsym activator-ns "grid-mods"))]
-           (if (empty? m#)
-             nil
-             (recur (do (.start (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context# 
-                                         (first m#))
-                                context#)
-                        (rest m#))))))
-     (defn ~(qsym activator-ns "-stop")
-       [context#]
-         (loop [m# ~(qsym activator-ns "grid-mods")]
-           (if (empty? m#)
-             nil
-             (recur (do (.stop (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context#
-                                        (first m#))
-                               context#)
-                        (rest m#)
-                      )))))))
+  `(do (def ~'grid-mods (atom ~(or (mapv #(conj (list %) 'quote) (get-in project [:grid :modules]))
+                                                      [])))
+       (def ~'compiler-loader (atom nil))
+       
+       (defn ~'-start
+         [this# context#]
+           (let [bundle# (.getBundle context#)
+                 name# (.getSymbolicName bundle#)]
+                (clojure.tools.logging/debug (str "Activating bundle "
+                                                  name#)))
+                (reset! ~'compiler-loader (deref Compiler/LOADER))
+                (loop [m# (deref ~'grid-mods)]
+                      (if (empty? m#)
+                          nil
+                          (recur (let [gmodname# (name (first m#))
+                                       gmod# (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context# 
+                                                                                                                  (first m#))]
+                                      (clojure.tools.logging/debug (str "Registering module "
+                                                                        gmodname#))
+                                      (.registerService context# gmodname# gmod# nil)
+                                      (.start gmod#
+                                        context#)
+                                (rest m#))))))
+       (defn ~'-stop
+         [this# context#]
+           (if (deref ~'compiler-loader)
+               (with-bindings {Compiler/LOADER (deref ~'compiler-loader)}
+                 (loop [m# (deref ~'grid-mods)]
+                     (if (empty? m#)
+                         nil
+                         (recur (do (.stop (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context#
+                                                                                                    (first m#))
+                                       context#)
+                                (rest m#)))))))
+           (reset! ~'compiler-loader nil))))
 
 (defn compile-activator 
       [project]
+      
       (let [activator-ns (symbol (activator-ns project))]
       (compile-form project activator-ns
         `(do (ns ~activator-ns
