@@ -48,8 +48,14 @@
 (defn make-dest-dirs
    [project]
    (let [base-dir (get-tomcat-deploy-path project)
-         dirs (map io/file [(make-local-path base-dir "WEB-INF" "lib")])]
-        (doall (map #(.mkdirs %) dirs))))
+         cache-dir (make-local-path base-dir "WEB-INF" "cache")
+         cache-path (io/file cache-dir)
+         dirs (map io/file [(make-local-path base-dir "WEB-INF" "lib")
+                            cache-dir])]
+        (doall (map #(.mkdirs %) dirs))
+        (.setExecutable cache-path true false)
+        (.setReadable cache-path true false)
+        (.setWritable cache-path true false)))
 
 (defn update-copy
       [src dest]
