@@ -29,13 +29,19 @@
       (if (.exists cfg-file)
           (:deploy-path (read-string (slurp cfg-file))))))
 
+(defn to-canonical-path
+  [path]
+    (.getCanonicalPath (io/file path)))
+
 (defn set-tomcat-deploy-path 
   [project path]
     (let [cfg-path (io/file (get-grid-config-path project))
           cfg-file (make-local-path (get-grid-config-path project)
                                               "tomcat_deploy.clj")]
       (.mkdirs cfg-path)
-      (spit cfg-file (str (assoc {} :deploy-path (.getCanonicalPath (io/file path)))))))
+      (spit cfg-file (str (assoc {} 
+                                 :deploy-path 
+                                 (to-canonical-path path))))))
 
 (defn install-projectref
   [project]
@@ -43,7 +49,15 @@
            projectref-filename (make-local-path (get-tomcat-deploy-path project)
                                                  "WEB-INF"
                                                  "projectref.clj")]
-          (spit projectref-filename (str (assoc {} :project-file project-file)))))
+          (spit projectref-filename (str (assoc {} 
+                                                :project-file 
+                                                project-file
+                                                :project-resource-paths
+                                                (filter identity (concat [(:source-path project)] 
+                                                                         (:source-paths project)
+                                                                         [(:resources-path project)] 
+                                                                         (:resource-paths project)
+                                                                         [(:compile-path project)])))))))
 
 (defn make-dest-dirs
    [project]
