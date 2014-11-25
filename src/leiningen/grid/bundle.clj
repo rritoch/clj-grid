@@ -199,13 +199,13 @@
                 (loop [m# (deref ~'grid-mods)]
                       (if (empty? m#)
                           nil
-                          (recur (let [gmodname# (name (first m#))
+                          (recur (let [gmodname# clojure.lang.Namespace
                                        gmod# (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context# 
                                                                                                                   (first m#))]
                                       (clojure.tools.logging/debug (str "Registering module "
-                                                                        gmodname#))
+                                                                        (.getName gmod#)))
                                       (.registerService context# gmodname# gmod# nil)
-                                      (.start gmod#
+                                      (com.vnetpublishing.clj.grid.mvc.base.module/start gmod#
                                         context#)
                                 (rest m#))))))
        (defn ~'-stop
@@ -215,7 +215,7 @@
                  (loop [m# (deref ~'grid-mods)]
                      (if (empty? m#)
                          nil
-                         (recur (do (.stop (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context#
+                         (recur (do (com.vnetpublishing.clj.grid.mvc.base.module/stop (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context#
                                                                                                     (first m#))
                                        context#)
                                 (rest m#)))))))
@@ -227,7 +227,8 @@
       (let [activator-ns (symbol (activator-ns project))]
       (compile-form project activator-ns
         `(do (ns ~activator-ns
-                 (:require com.vnetpublishing.clj.grid.lib.grid.osgi.activator)
+                 (:require [com.vnetpublishing.clj.grid.lib.grid.osgi.activator]
+                           [com.vnetpublishing.clj.grid.mvc.base.module])
                  (:gen-class :implements [org.osgi.framework.BundleActivator]))
              ~(generate-activator project activator-ns)))))
 
