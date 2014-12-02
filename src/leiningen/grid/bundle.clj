@@ -182,7 +182,6 @@
         (JarOutputStream. (make-manifest (merge (gen-osgi-manifest project)
                                                 (:manifest project))))))
 
-
 (defn generate-activator 
   [project activator-ns]
   `(do (def ~'grid-mods (atom ~(or (mapv #(conj (list %) 'quote) (get-in project [:grid :modules]))
@@ -194,8 +193,21 @@
            (let [bundle# (.getBundle context#)
                  name# (.getSymbolicName bundle#)]
                 (clojure.tools.logging/debug (str "Activating bundle "
-                                                  name#)))
+                                                  name#))
+                (clojure.tools.logging/debug (str name#
+                                                  ": Activator ClassLoader "
+                                                  (pr-str (.getClassLoader (class this#)))))
+                
+                (clojure.tools.logging/debug (str name# 
+                                                  ": ContextClassLoader Loader "
+                                                  (pr-str (.getContextClassLoader (Thread/currentThread)))))
+                
+                (clojure.tools.logging/debug (str name#
+                                                  ": Compiler/LOADER "
+                                                  (pr-str (deref Compiler/LOADER)))))
                 (reset! ~'compiler-loader (deref Compiler/LOADER))
+                (.setContextClassLoader (Thread/currentThread) (deref (Compiler/LOADER)))
+                (binding [com.vnetpublishing.clj.grid.lib.grid.kernel/*osgi-context* context#]
                 (loop [m# (deref ~'grid-mods)]
                       (if (empty? m#)
                           nil
@@ -203,11 +215,13 @@
                                        gmod# (com.vnetpublishing.clj.grid.lib.grid.osgi.activator/get-grid-module context# 
                                                                                                                   (first m#))]
                                       (clojure.tools.logging/debug (str "Registering module "
-                                                                        (.getName gmod#)))
+                                                                        (.getName gmod#)
+                                                                        " with class loader "
+                                                                        (pr-str (.getClassLoader (class gmod#)))))
                                       (.registerService context# gmodname# gmod# nil)
                                       (com.vnetpublishing.clj.grid.mvc.base.module/start gmod#
                                         context#)
-                                (rest m#))))))
+                                (rest m#)))))))
        (defn ~'-stop
          [this# context#]
            (if (deref ~'compiler-loader)
@@ -228,7 +242,8 @@
       (compile-form project activator-ns
         `(do (ns ~activator-ns
                  (:require [com.vnetpublishing.clj.grid.lib.grid.osgi.activator]
-                           [com.vnetpublishing.clj.grid.mvc.base.module])
+                           [com.vnetpublishing.clj.grid.mvc.base.module]
+                           [com.vnetpublishing.clj.grid.lib.grid.kernel])
                  (:gen-class :implements [org.osgi.framework.BundleActivator]))
              ~(generate-activator project activator-ns)))))
 
